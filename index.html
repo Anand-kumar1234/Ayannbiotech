@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALTORA GROUP OF COMPANIES Pharmaceutical Website</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: '#f7f9fb'; /* Light clinical background */
+        }
+        /* Custom Utility Classes for Animation */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .fade-in.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* Modal Backdrop */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: white;
+            padding: 0rem; 
+            border-radius: 1rem;
+            max-width: 90%;
+            width: 600px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        /* Restore default padding for deep dive modal */
+        #deepDiveModal .modal-content {
+            padding: 2rem;
+        }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#1a73e8', /* Core ALTORA blue */
+                        'secondary-dark': '#0f4d92', /* Darker accent */
+                        'accent-green': '#34a853', /* Health accent */
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-gray-800">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- UPDATED FIREBASE CONFIGURATION ---
+        const explicitFirebaseConfig = {
+            apiKey: "AIzaSyApOkBxcBMVrmK_zDAlGg7hsnjb3VF_TxE",
+            authDomain: "ayanbiotech-39c4c.firebaseapp.com",
+            projectId: "ayanbiotech-39c4c",
+            storageBucket: "ayanbiotech-39c4c.firebasestorage.app",
+            messagingSenderId: "696319401564",
+            appId: "1:696319401564:web:1081c3a59c2cc0f2c2d099",
+            measurementId: "G-TR7D1MECCM"
+        };
+        const firebaseConfig = explicitFirebaseConfig;
+        const appId = firebaseConfig.projectId; 
+        // --- END CONFIGURATION ---
+
+        // Firestore Collection paths
+        const HOVER_COLLECTION_PATH = `artifacts/${appId}/public/data/product_hovers`;
+        const QUERY_COLLECTION_PATH = `artifacts/${appId}/public/data/pharmaceutical_queries`;
+
+        let db = null;
+        let auth = null;
+        let userId = null;
+
+        async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app); 
+                setLogLevel('Debug'); 
+
+                window.db = db;
+                window.auth = auth;
+                window.userId = crypto.randomUUID(); 
+                userId = window.userId;
+
+                console.log("Firebase initialized (Unauthenticated). User ID:", userId);
+
+                if (window.setupProductHoverTracking) {
+                    window.setupProductHoverTracking();
+                }
+
+            } catch (error) {
+                console.error("Error during Firebase initialization:", error);
+                const msgEl = document.getElementById('query-message');
+                if (msgEl) msgEl.textContent = "Failed to connect to the database. Check console for details.";
+            }
+        }
+
+        window.handleQuerySubmission = async function(event) {
+            event.preventDefault();
+
+            if (!db) {
+                document.getElementById('query-message').textContent = "Database service is not ready.";
+                return;
+            }
+
+            const name = document.getElementById('query-name').value;
+            const email = document.getElementById('query-email').value;
+            const queryText = document.getElementById('query-text').value;
+            const messageElement = document.getElementById('query-message');
+
+            if (!name || !email || !queryText) {
+                messageElement.textContent = "Please fill in all fields.";
+                messageElement.className = 'mt-4 text-sm font-medium text-center text-primary-blue';
+                return;
+            }
+            
+            messageElement.textContent = "Submitting query...";
+            messageElement.className = 'mt-4 text-sm font-medium text-center text-gray-500';
+
+            try {
+                await addDoc(collection(db, QUERY_COLLECTION_PATH), {
+                    name,
+                    email,
+                    queryText,
+                    status: 'New Query (Unauthenticated)',
+                    submittedAt: new Date().toISOString(),
+                    userId: userId,
+                });
+
+                messageElement.textContent = "Query submitted successfully! We will contact you soon.";
+                messageElement.className = 'mt-4 text-sm font-medium text-center text-accent-green';
+                document.getElementById('queryForm').reset();
+
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                messageElement.textContent = "Error: Submission failed. Please ensure Firestore rules are updated.";
+                messageElement.className = 'mt-4 text-sm font-medium text-center text-secondary-dark';
+            }
+        }
+
+        window.addEventListener('load', initFirebase);
+    </script>
+    
+    <script>
+        // --- Core Gemini API Utility Functions ---
+        const apiKey = "YOUR_GEMINI_API_KEY_HERE"; 
+        const GEMINI_FLASH = "gemini-2.5-flash-preview-09-2025";
+        const GEMINI_TTS = "gemini-2.5-flash-preview-tts";
+        const HOVER_COLLECTION_PATH = "artifacts/ayanbiotech-1685f/public/data/product_hovers"; 
+
+        const hoveredProducts = {};
+
+        // Helper functions (exposed to window for use in HTML onclick)
+        window.closeDeepDiveModal = function() { document.getElementById('deepDiveModal').style.display = 'none'; }
+        window.openProductRangeModalInquiry = function() {
+            document.getElementById('productRangeModal').style.display = 'none';
+            document.getElementById('queries').scrollIntoView({behavior: 'smooth'});
+        };
+        window.closeProductRangeModal = function() {
+            document.getElementById('productRangeModal').style.display = 'none';
+        }
+
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        async function retryWithExponentialBackoff(fetcher, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    return await fetcher();
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+        
+        // Product Hover Tracking Logic
+        window.recordProductHover = async function(productName) {
+            if (!window.db || !window.userId) {
+                return;
+            }
+            const key = `${window.userId}_${productName}`;
+            if (hoveredProducts[key]) return;
+            try {
+                const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+                await addDoc(collection(window.db, HOVER_COLLECTION_PATH), {
+                    productName: productName,
+                    userId: window.userId,
+                    timestamp: new Date().toISOString(),
+                    contactStatus: 'New Lead (Unauthenticated)', 
+                });
+                hoveredProducts[key] = true;
+            } catch (e) {
+                // console.error("Error recording product hover:", e);
+            }
+        }
+        const debouncedRecordProductHover = debounce(window.recordProductHover, 1000);
+
+        window.setupProductHoverTracking = function() {
+            const productCards = document.querySelectorAll('[data-name]');
+            productCards.forEach(card => {
+                card.addEventListener('mouseover', function() {
+                    const productName = this.getAttribute('data-name');
+                    debouncedRecordProductHover(productName);
+                });
+            });
+        }
+
+        // --- Gemini Deep Dive & TTS Helpers ---
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcm16, sampleRate = 24000) {
+            const numChannels = 1;
+            const bytesPerSample = 2;
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+            const buffer = new ArrayBuffer(44 + pcm16.byteLength);
+            const view = new DataView(buffer);
+
+            view.setUint32(0, 0x52494646, false); // "RIFF"
+            view.setUint32(4, 36 + pcm16.byteLength, true);
+            view.setUint32(8, 0x57415645, false); // "WAVE"
+            view.setUint32(12, 0x666d7420, false); // "fmt "
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint32(32, blockAlign, true);
+            view.setUint16(34, 16, true);
+            view.setUint32(36, 0x64617461, false); // "data"
+            view.setUint32(40, pcm16.byteLength, true);
+
+            let offset = 44;
+            for (let i = 0; i < pcm16.length; i++, offset += 2) {
+                view.setInt16(offset, pcm16[i], true);
+            }
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+        
+        window.fetchGeminiGroundedResponse = async function(productName, productType) {
+            const modal = document.getElementById('deepDiveModal');
+            const titleEl = document.getElementById('deepDiveTitle');
+            const contentEl = document.getElementById('deepDiveContent');
+            const loaderEl = document.getElementById('deepDiveLoader');
+            
+            titleEl.textContent = productName;
+            contentEl.innerHTML = '';
+            loaderEl.classList.remove('hidden');
+            modal.style.display = 'flex'; 
+
+            if (apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+                loaderEl.classList.add('hidden');
+                contentEl.textContent = "API Key not configured. Replace 'YOUR_GEMINI_API_KEY_HERE' in the script with a valid key for the Scientific Deep Dive to work.";
+                return;
+            }
+
+            const userQuery = `Find the key health benefits, scientific backing, and common usage instructions for a pharmaceutical/supplement product named "${productName}" (${productType}). Provide a concise, professional summary.`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_FLASH}:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: "You are a senior pharmaceutical researcher. Summarize the benefits and usage accurately, citing all sources. The tone must be clinical, factual, and informative." }]
+                },
+            };
+
+            try {
+                const fetcher = async () => {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+                    return response.json();
+                };
+
+                const result = await retryWithExponentialBackoff(fetcher);
+                const candidate = result.candidates?.[0];
+                loaderEl.classList.add('hidden');
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    let text = candidate.content.parts[0].text;
+                    let sources = [];
+
+                    const groundingMetadata = candidate.groundingMetadata;
+                    if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                        sources = groundingMetadata.groundingAttributions
+                            .map(attr => ({ uri: attr.web?.uri, title: attr.web?.title }))
+                            .filter(source => source.uri && source.title);
+                    }
+
+                    let formattedHtml = `<p class="mb-4">${text.replace(/\n\n/g, '</p><p class="mb-4">')}</p>`;
+                    
+                    if (sources.length > 0) {
+                        formattedHtml += '<h4 class="text-lg font-bold mt-6 mb-2 text-secondary-dark">Scientific References:</h4>';
+                        formattedHtml += '<ul class="list-disc list-inside space-y-1 text-sm text-gray-600">';
+                        sources.forEach((source, index) => {
+                            formattedHtml += `<li><a href="${source.uri}" target="_blank" class="text-primary-blue hover:underline">${source.title || 'Source ' + (index + 1)}</a></li>`;
+                        });
+                        formattedHtml += '</ul>';
+                    } else {
+                        formattedHtml += '<p class="mt-4 text-sm text-gray-500">Information provided based on general knowledge and model training.</p>';
+                    }
+
+                    contentEl.innerHTML = formattedHtml;
+
+                } else {
+                    contentEl.textContent = "Data retrieval failed. Unable to generate deep dive information.";
+                }
+
+            } catch (error) {
+                console.error("Gemini API call failed:", error);
+                loaderEl.classList.add('hidden');
+                contentEl.textContent = "A network error occurred while fetching information.";
+            }
+        }
+
+        window.fetchGeminiAudioResponse = async function() { 
+            const prompt = document.getElementById('tts-prompt').value.trim();
+            const messageEl = document.getElementById('tts-message');
+            const audioEl = document.getElementById('tts-audio-player');
+            
+            if (apiKey === "YOUR_GEMINI_API_KEY_HERE") {
+                messageEl.textContent = "API Key not configured. Replace 'YOUR_GEMINI_API_KEY_HERE' in the script with a valid key for the Health Assistant to work.";
+                return;
+            }
+
+            if (!prompt) {
+                messageEl.textContent = "Please enter your health or product question.";
+                messageEl.className = 'mt-4 text-sm font-medium text-center text-primary-blue';
+                return;
+            }
+
+            audioEl.classList.add('hidden');
+            audioEl.src = ''; 
+            messageEl.textContent = "Consulting the Health Assistant...";
+            messageEl.className = 'mt-4 text-sm font-medium text-center text-gray-500';
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TTS}:generateContent?key=${apiKey}`;
+            
+            const systemPrompt = "You are a calm, informative, and professional health assistant. Provide a brief, general, and medically appropriate answer to the user's health or product question. Always preface your answer by stating that this is not medical advice.";
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: "Kore" }
+                        }
+                    }
+                },
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            try {
+                const fetcher = async () => {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+                    return response.json();
+                };
+
+                const result = await retryWithExponentialBackoff(fetcher);
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+                    
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    audioEl.src = audioUrl;
+                    audioEl.classList.remove('hidden');
+                    messageEl.textContent = "Audio consultation ready! (Press Play)";
+                    messageEl.className = 'mt-4 text-sm font-medium text-center text-accent-green';
+                } else {
+                    messageEl.textContent = "Error: Failed to generate audio response.";
+                    messageEl.className = 'mt-4 text-sm font-medium text-center text-secondary-dark';
+                }
+
+            } catch (error) {
+                console.error("Gemini TTS API call failed:", error);
+                messageEl.textContent = "A network error occurred while attempting the consultation.";
+                messageElement.classList.add('text-secondary-dark');
+            }
+        }
+
+
+        // --- BRANDING AND CONTENT LOGIC (Cleaned up duplications) ---
+
+        const BRAND_INFO = {
+            'ALTORA GROUP OF COMPANIES': {
+                tagline: "Innovating Health, Enhancing Life",
+                about: "The ALTORA GROUP is committed to developing high-quality, scientifically-backed pharmaceutical products and nutritional supplements. Our focus is on safety, efficacy, and trust.",
+                products: 'ALL',
+                homeTitle: "Welcome to",
+            },
+            'Altora Life Sciences': {
+                tagline: "Dedicated to Life Sciences and Advanced Formulations",
+                about: "Altora Life Sciences, a division of ALTORA GROUP, focuses on innovative research and the manufacturing of specialized, high-potency nutritional and therapeutic supplements.",
+                products: 'Altora Life Sciences',
+                homeTitle: "Discover",
+            },
+            'Firstline': {
+                tagline: "Your First Choice in Quality Healthcare",
+                about: "The Firstline division focuses on providing affordable, high-quality, essential pharmaceuticals and generic medicines that meet everyday healthcare needs.",
+                products: 'Firstline',
+                homeTitle: "Explore",
+            },
+            'AyanBiotech': {
+                tagline: "Biotech Innovations for Global Health Access",
+                about: "AyanBiotech leverages advanced biotechnology for the research and commercialization of new-generation pharmaceutical solutions and targeted therapeutics.",
+                products: 'AyanBiotech', // Key used for filtering
+                homeTitle: "Advance with",
+            },
+        };
+
+
+        // --- PRODUCT DATA (Updated Brands) ---
+        const productData = [
+            // --- Altora Life Sciences Products (12 items) ---
+            { brand: 'Altora Life Sciences', name: "Sulbutime Tablets", category: "Cognitive & Urinary Health", description: "Combination of Sulbutiamine (Vitamin B1 derivative) and Cranberry extract for cognitive support and urinary tract health.", image: "https://placehold.co/200x200/1a73e8/ffffff?text=ALS+Cognitive", price: 480.00, strength: "Sulbutiamine 200mg / Cranberry Extract 500mg", packaging: "Tablets", documents: "Sulbutime_TDS.pdf" },
+            { brand: 'Altora Life Sciences', name: "Calvis CT Softgel", category: "Bone & Mineral Health", description: "Advanced softgel capsules providing high-dose Calcium Citrate, Magnesium, Zinc, and Vitamin D3 for bone density and strength.", image: "https://placehold.co/200x200/0f4d92/ffffff?text=ALS+Calcium", price: 720.00, strength: "Calcium Citrate 425mg / Vit D3 400 IU / Magnesium 400 IU", packaging: "Softgel Capsules", documents: "CalvisCT_MSDS.pdf" },
+            { brand: 'Altora Life Sciences', name: "Caliber M Softgel", category: "Advanced Bone Supplement", description: "A specialized blend of Calcium Citrate with active vitamins (D3, K2-7) and B-Vitamins (B12, Pyridoxine) for superior absorption and bone matrix support.", image: "https://placehold.co/200x200/8c93a3/ffffff?text=ALS+Bone", price: 910.00, strength: "Calcium Citrate 500mg / Vitamin K2-7 45mcg / Vitamin D3 200 IU", packaging: "Softgel Capsules", documents: "CaliberM_Label.pdf" },
+            { brand: 'Altora Life Sciences', name: "Tri B-DHA Softgel", category: "Nutritional Support (Pregnancy/Neuro)", description: "Contains active folate (5-MTHF), B12, and high-dose DHA, crucial for fetal neural development and general neurological health.", image: "https://placehold.co/200x200/b3d4fc/000000?text=ALS+DHA", price: 1100.00, strength: "DHA 200mg / 5-MTHF 570mcg / Vitamin B12 2.2mcg", packaging: "Softgel Capsules", documents: "TriBDHA_Details.pdf" },
+            { brand: 'Altora Life Sciences', name: "Apitovit Syrup", category: "Multivitamin & L-Lysine Syrup", description: "A syrup combining L-Lysine, B-Vitamins, and essential minerals to promote appetite, growth, and overall metabolic health.", image: "https://placehold.co/200x200/ffc107/000000?text=ALS+Syrup", price: 280.00, strength: "L-Lysine 375mg / Choline / Thiamine / Zinc", packaging: "Syrup Base", documents: "Apitovit_Label.pdf" },
+            { brand: 'Altora Life Sciences', name: "Zinkomed-K5 Syrup", category: "Multimineral & Lycopene Syrup", description: "Syrup blend featuring Iron, Calcium, Lycopene, and a B-Complex for addressing nutritional deficiencies, fatigue, and general health in children/adults.", image: "https://placehold.co/200x200/1a73e8/ffffff?text=ALS+Zinc", price: 310.00, strength: "Protein Hydrolysate / Iron 13.33mg / Lycopene 1000mcg", packaging: "Syrup Base", documents: "ZinkomedK5_Label.pdf" },
+            { brand: 'Altora Life Sciences', name: "AquaBasil Capsules", category: "Probiotic for Gut Flora", description: "Concentrated probiotic capsule containing 45 billion spores of key bacterial strains for immediate gut restoration.", image: "https://placehold.co/200x200/34a853/ffffff?text=ALS+Gut", price: 520.00, strength: "Streptococcus/Lactobacillus/Bifidobacterium (Total 45 Billion Spores)", packaging: "Capsules", documents: "AquaBasil_Info.pdf" },
+            { brand: 'Altora Life Sciences', name: "Atheroblock Tablets", category: "Cardiovascular & Antioxidant", description: "Combines Grape Seed Extract, Beta Carotene, Folic Acid, and Vitamins A and C to protect the heart and arteries from oxidative damage.", image: "https://placehold.co/200x200/0f4d92/ffffff?text=ALS+Artery", price: 750.00, strength: "Grape Seed Extract 200mg / L-Methylfolate 1000mcg / Beta Carotene 10mg", packaging: "Tablets", documents: "Atheroblock_Info.pdf" },
+            { brand: 'Altora Life Sciences', name: "B Plus Gold Tablets", category: "Neuropathy & General Vitality", description: "A high-dose B-Complex including Benfotiamine, L-Methylfolate, and Pyridoxine, fortified with essential minerals like Zinc and Chromium.", image: "https://placehold.co/200x200/8c93a3/ffffff?text=ALS+B-Complex", price: 620.00, strength: "Benfotiamine 50mg / L-Mthylfolate 200mcg / Pyridoxamine 25mg", packaging: "Tablets", documents: "BPlusGold_TDS.pdf" },
+            { brand: 'Altora Life Sciences', name: "AMVIT-PLUS Sugar Free Syrup", category: "B-Complex Syrup (Sugar Free)", description: "Sugar-free B-Complex and L-Lysine syrup, ideal for children and diabetics, aiding metabolism, energy, and appetite stimulation.", image: "https://placehold.co/200x200/b3d4fc/000000?text=ALS+SF+Syrup", price: 260.00, strength: "L-Lysine 375mg / Niacinamide 23mg / Thiamine 2.3mg", packaging: "Syrup Base (Sugar Free)", documents: "AMVITPlus_SF.pdf" },
+            { brand: 'Altora Life Sciences', name: "AZIVIT Syrup", category: "Antioxidant & Immunity Syrup", description: "Syrup rich in antioxidants like Astaxanthin, combined with Vitamins C, E, and B-Complex, and essential minerals to boost immunity.", image: "https://placehold.co/200x200/dc3545/ffffff?text=ALS+Immunity", price: 340.00, strength: "Astaxanthin 75mcg / Vit C 20mg / Vit B3 13mg / Zinc 2mg", packaging: "Syrup Base", documents: "AZIVIT_Label.pdf" },
+            { brand: 'Altora Life Sciences', name: "LEVOMINE-L Syrup", category: "Lycopene & Multivitamin Syrup", description: "Lycopene-rich syrup with a high concentration of essential B-Vitamins, Zinc, and Vitamin C, targeting tissue repair and overall antioxidant protection.", image: "https://placehold.co/200x200/ffc107/000000?text=ALS+Lycopene", price: 330.00, strength: "Lycopene 2.5mg / Zinc 15mg / Vit C 80mg / B-Complex", packaging: "Syrup Base", documents: "LEVOMINEL_Info.pdf" },
+
+            // --- Firstline Products (34 items) ---
+            { brand: 'Firstline', name: "Livfinity Tablets", category: "Hepato-Protective / Liver Care", description: "Supports liver function with Silymarin, L-Aspartate, and a comprehensive B-Complex vitamin profile.", image: "https://placehold.co/200x200/34a853/ffffff?text=FL+Liver", price: 590.00, strength: "Silymarin / L-Aspartate with B1, B2, B6, B12", packaging: "Tablets", documents: "Livfinity_Info.pdf" },
+            { brand: 'Firstline', name: "Rivomag-Q10 Tablets", category: "Energy & Migraine Prevention", description: "Combines Magnesium, Riboflavin (Vitamin B2), and Co-Enzyme Q10, often used to support cellular energy and reduce migraine frequency.", image: "https://placehold.co/200x200/dc3545/ffffff?text=FL+Q10", price: 850.00, strength: "Magnesium 385mg / Riboflavin 3.2mg / CoQ10 150mg", packaging: "Tablets", documents: "RivomagQ10_Data.pdf" },
+            { brand: 'Firstline', name: "GH Gold-L Softgel", category: "Multivitamin & Antioxidant", description: "Multivitamin and Multimineral formula enriched with Lycopene and essential vitamins (A, C, E) and Zinc for general wellness and antioxidant protection.", image: "https://placehold.co/200x200/ffc107/000000?text=FL+Multi", price: 650.00, strength: "Lycopene 5000mcg / Vitamin A 2500 IU / Vitamin C 50mg", packaging: "Softgel Capsules", documents: "GHGoldL_Summary.pdf" },
+            { brand: 'Firstline', name: "Exorock Herbal Kit", category: "Herbal / UTI & Kidney Stone", description: "A traditional herbal formulation featuring Punarnava, Gokshur, and Pashanbheda to support kidney function and help manage UTI and kidney stones.", image: "https://placehold.co/200x200/34a853/ffffff?text=FL+Herbal", price: 390.00, strength: "Gokshur 75mg / Punarnava 75mg / Full Herbal Blend", packaging: "Herbal Kit", documents: "Exorock_Kit_Info.pdf" },
+            { brand: 'Firstline', name: "Amin Eight Capsules", category: "Amino Acids & Vitamins", description: "A comprehensive formula with 18 Amino Acids and key B and D Vitamins, designed for muscle repair, energy, and rapid nutrient absorption.", image: "https://placehold.co/200x200/0f4d92/ffffff?text=FL+Amino", price: 990.00, strength: "L-Tyrosine 84g / L-Lysine 30g / Full Amino Profile", packaging: "Capsules", documents: "AminEight_Data.pdf" },
+            { brand: 'Firstline', name: "Advanced Twogut", category: "Pre-Probiotic Health", description: "High-potency capsules containing a blend of 8 probiotic strains and FOS to restore gut flora and digestive balance.", image: "https://placehold.co/200x200/1a73e8/ffffff?text=FL+Probiotic", price: 450.00, strength: "Lactobacillus/Bifidobacterium (Total 2.9 Billion) + FOS 100mg", packaging: "Capsules", documents: "AdvTwogut_TDS.pdf" },
+            { brand: 'Firstline', name: "Argilead Tablets", category: "Vascular & Metabolic Support", description: "Contains L-Arginine, Fenugreek Seed, and Cinnamon to support blood flow, healthy glucose metabolism, and cardiovascular function.", image: "https://placehold.co/200x200/dc3545/ffffff?text=FL+Vascular", price: 680.00, strength: "L-Arginine 500mg / Fenugreek 500mg / Cinnamon 500mg", packaging: "Tablets", documents: "Argilead_Details.pdf" },
+            { brand: 'Firstline', name: "Auxibion-LC Tablets", category: "Fertility & Energy Metabolism", description: "Contains L-Carnitine L-Tartrate and L-Arginine with key vitamins (D3, E) and Magnesium, widely used for enhancing male fertility and muscle energy.", image: "https://placehold.co/200x200/0f4d92/ffffff?text=FL+Fertility", price: 890.00, strength: "L-Carnitine L-Tartrate 500mg / L-Arginine 100mg / Vit D3 600 IU", packaging: "Tablets", documents: "AuxibionLC_Label.pdf" },
+            { brand: 'Firstline', name: "AMVIT Syrup", category: "Multivitamin & Multimineral Syrup", description: "A comprehensive liquid supplement with Vitamins A, E, C, and B-Complex, along with L-Lysine and vital trace minerals for daily nutritional support.", image: "https://placehold.co/200x200/b3d4fc/000000?text=FL+Liquid", price: 250.00, strength: "Vit A 2500 IU / L-Lysine 50mg / Niacinamide 10mg", packaging: "Syrup Base", documents: "AMVIT_Info.pdf" },
+            { brand: 'Firstline', name: "ARSZYME Digestive Enzyme", category: "Digestive Aid (Enzyme Syrup)", description: "Syrup combining Fungal Diastase and Pepsin to help digest carbohydrates and proteins, relieving indigestion and bloating.", image: "https://placehold.co/200x200/dc3545/ffffff?text=FL+Digestive", price: 210.00, strength: "Fungal Diastase (1:1200) 50g / Pepsin (1:3000) 10g", packaging: "Syrup Base", documents: "ARSZYME_Data.pdf" },
+            { brand: 'Firstline', name: "FEROFAB XT Syrup", category: "Iron & Hematinic Syrup", description: "Essential hematinic formula with Ferric Ammonium Citrate, Folic Acid, and Zinc, used to treat iron deficiency and associated anemia.", image: "https://placehold.co/200x200/8c93a3/ffffff?text=FL+Iron", price: 290.00, strength: "Elemental Iron 30mg / Folic Acid 500mcg / Zinc Sulphate 17mg", packaging: "Syrup Base", documents: "FEROFABXT_TDS.pdf" },
+            { brand: 'Firstline', name: "Itraconazole 100mg", category: "Antifungal", description: "Oral antifungal used for long-term treatment of systemic and severe cutaneous fungal infections.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Itra+100", price: 450.00, strength: "100mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Itraconazole100_Info.pdf" },
+            { brand: 'Firstline', name: "Acebrophylline Capsules", category: "Respiratory / Bronchodilator", description: "Used for the treatment of asthma and chronic obstructive pulmonary disease (COPD) by relaxing muscles in the airways.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Resp", price: 350.00, strength: "100mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Acebrophylline_Info.pdf" },
+            { brand: 'Firstline', name: "Aceclofenac SR 200mg & Thiocolchicoside SR 8mg", category: "Pain & Inflammation", description: "Combination drug used for relief from moderate to severe pain and muscle spasm associated with musculoskeletal conditions.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Pain+8", price: 420.00, strength: "Aceclofenac SR 200mg & Thiocolchicoside SR 8mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AcecloThio8_Info.pdf" },
+            { brand: 'Firstline', name: "Aceclofenac SR 200mg & Thiocolchicoside SR 16mg", category: "Pain & Inflammation", description: "Higher strength combination for effective relief from severe pain and intense muscle rigidity.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Pain+16", price: 550.00, strength: "Aceclofenac SR 200mg & Thiocolchicoside SR 16mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AcecloThio16_Info.pdf" },
+            { brand: 'Firstline', name: "Atorvastatin 10mg and Aspirin 75mg", category: "Cardiology / Lipid Control", description: "Used to reduce the risk of heart attack and stroke in patients by lowering cholesterol (Atorvastatin) and preventing blood clots (Aspirin).", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Cardio", price: 650.00, strength: "Atorvastatin 10mg & Aspirin 75mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AtorAspirin75_Info.pdf" },
+            { brand: 'Firstline', name: "Atorvastatin 10mg and Aspirin 150mg", category: "Cardiology / Lipid Control", description: "Higher Aspirin strength combination for more intense cardiovascular protection and cholesterol management.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Cardio+", price: 780.00, strength: "Atorvastatin 10mg & Aspirin 150mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AtorAspirin150_Info.pdf" },
+            { brand: 'Firstline', name: "Carbonyl Iron, Folic Acid, Zinc, Vit C, B12", category: "Haematinic / Iron Supplement", description: "A comprehensive formula to prevent and treat various types of anemia by supplementing essential blood-forming minerals and vitamins.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Haematinic", price: 320.00, strength: "Iron 100mg, Folic Acid 1.5mg, Zinc 61.8mg, Vit C 75mg, B12 15mcg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Haematinic_Complex_Info.pdf" },
+            { brand: 'Firstline', name: "Clindamycin 150mg IP (P2)", category: "Antibiotic", description: "A potent lincosamide antibiotic used to treat various serious bacterial infections, including respiratory and skin infections. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Clinda+150", price: 210.00, strength: "150mg IP", packaging: "10x10 Alu Alu / Strip Pack", documents: "Clindamycin150_Info.pdf" },
+            { brand: 'Firstline', name: "Clindamycin 300mg IP (P2)", category: "Antibiotic", description: "Higher strength Clindamycin for treating severe bacterial infections that are sensitive to this antibiotic. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Clinda+300", price: 390.00, strength: "300mg IP", packaging: "10x10 Alu Alu / Strip Pack", documents: "Clindamycin300_Info.pdf" },
+            { brand: 'Firstline', name: "DexRabeprazole 10mg EC & Domperidone 30mg TTINE SR (P2)", category: "Gastroenterology / GERD", description: "Dual-action capsule combining a proton pump inhibitor (PPI) for acid reduction and an anti-emetic (Domperidone) for treating reflux and nausea. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+GERD", price: 480.00, strength: "DexRabeprazole 10mg EC & Domperidone 30mg TTINE SR", packaging: "10x10 Alu Alu / Strip Pack", documents: "DexRabeDom_Info.pdf" },
+            { brand: 'Firstline', name: "Doxycycline Hcl 50 mg IP (P2)", category: "Antibiotic (Tetracycline)", description: "Low-dose Doxycycline used for treating acne, rosacea, and mild infections. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Doxy+50", price: 150.00, strength: "50mg IP", packaging: "10x10 Alu Alu / Strip Pack", documents: "Doxy50_Info.pdf" },
+            { brand: 'Firstline', name: "Doxycycline Hcl 100 mg IP (P2)", category: "Antibiotic (Tetracycline)", description: "Standard dose Doxycycline for treating a wide range of bacterial and protozoal infections. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Doxy+100", price: 250.00, strength: "100mg IP", packaging: "10x10 Alu Alu / Strip Pack", documents: "Doxy100_Info.pdf" },
+            { brand: 'Firstline', name: "Doxycycline Hcl 100 mg + LAB 5M Spores (P2)", category: "Antibiotic + Probiotic", description: "Combines Doxycycline with a low dose of Lactic Acid Bacillus to reduce antibiotic-associated diarrhea and maintain gut flora. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Doxy+5M", price: 290.00, strength: "Doxycycline Hcl 100mg & Lactic Acid Bacillus 5 Million Spores", packaging: "10x10 Alu Alu / Strip Pack", documents: "DoxyProbiotic5M_Info.pdf" },
+            { brand: 'Firstline', name: "Doxycycline Hcl 100 mg + LAB 5B Spores (P2)", category: "Antibiotic + Probiotic", description: "High-strength probiotic combination with Doxycycline for robust protection against gut disturbances during antibiotic therapy. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Doxy+5B", price: 350.00, strength: "Doxycycline Hcl 100mg & Lactic Acid Bacillus 5 Billion Spores", packaging: "10x10 Alu Alu / Strip Pack", documents: "DoxyProbiotic5B_Info.pdf" },
+            { brand: 'Firstline', name: "Doxycycline Hcl 200 mg IP (P2)", category: "Antibiotic (Tetracycline)", description: "High dose Doxycycline used for specific severe infections or conditions requiring a potent concentration. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Doxy+200", price: 420.00, strength: "200mg IP", packaging: "10x10 Alu Alu / Strip Pack", documents: "Doxy200_Info.pdf" },
+            { brand: 'Firstline', name: "Esomeprazole 40mg EC & Domperidone 30mg SR (P2)", category: "Gastroenterology / GERD", description: "PPI/Prokinetic combination for effective and sustained relief from acid reflux, heartburn, and esophagitis. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+EsomeDom", price: 510.00, strength: "Esomeprazole 40mg EC & Domperidone 30mg SR", packaging: "10x10 Alu Alu / Strip Pack", documents: "EsomepDom_Info.pdf" },
+            { brand: 'Firstline', name: "Esomeprazole 40mg EC & Levosulpiride 75mg SR (P2)", category: "Gastroenterology / Dyspepsia", description: "Combination of PPI and Levosulpiride, an atypical prokinetic and neuroleptic, used for difficult cases of GERD and functional dyspepsia. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+EsomeLev", price: 600.00, strength: "Esomeprazole 40mg EC & Levosulpiride 75mg SR", packaging: "10x10 Alu Alu / Strip Pack", documents: "EsomepLev_Info.pdf" },
+            { brand: 'Firstline', name: "Esomeprazole 40mg EC & Itopride Hydrochloride 150mg SR (P2)", category: "Gastroenterology / Motility", description: "Combines PPI with Itopride, a gastroprokinetic agent, to treat GERD symptoms associated with slow gastric motility. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+EsomeIto", price: 650.00, strength: "Esomeprazole 40mg EC & Itopride Hydrochloride 150mg SR", packaging: "10x10 Alu Alu / Strip Pack", documents: "EsomepIto_Info.pdf" },
+            { brand: 'Firstline', name: "Fluconazole 150 mg IP (P2)", category: "Antifungal", description: "Standard single-dose therapy for systemic and superficial fungal infections, such as candidiasis. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Fluco", price: 180.00, strength: "150mg IP", packaging: "10x10 Alu Alu / Strip Pack", documents: "Fluconazole150_Info.pdf" },
+            { brand: 'Firstline', name: "Gabapentin 300mg (P2)", category: "Neurology / Nerve Pain", description: "Anticonvulsant drug used to treat partial seizures and effectively manage neuropathic pain. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Gaba", price: 310.00, strength: "300mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Gabapentin300_Info.pdf" },
+            { brand: 'Firstline', name: "Itraconazole 200mg (P2)", category: "Antifungal", description: "High-strength Itraconazole for conditions requiring aggressive or high-concentration antifungal therapy. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Itra+200", price: 790.00, strength: "200mg", packaging: "10x10, 10x4 Alu Alu / Strip Pack", documents: "Itraconazole200_Info.pdf" },
+            { brand: 'Firstline', name: "Lansoprazole 15mg (P2)", category: "Gastroenterology / PPI", description: "Proton pump inhibitor (PPI) used for treating and preventing stomach ulcers and GERD. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Lanso+15", price: 190.00, strength: "15mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Lansoprazole15_Info.pdf" },
+            { brand: 'Firstline', name: "Lansoprazole 30mg (P2)", category: "Gastroenterology / PPI", description: "Standard strength PPI for robust acid suppression therapy in managing ulcers and severe GERD. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Lanso+30", price: 290.00, strength: "30mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Lansoprazole30_Info.pdf" },
+            { brand: 'Firstline', name: "Itraconazole 100mg - Secondary Pack", category: "Antifungal", description: "Oral antifungal used for long-term treatment of systemic and severe cutaneous fungal infections (Secondary Pack Size).", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Itra+100P", price: 450.00, strength: "100mg", packaging: "10x4 Alu Alu / Strip Pack", documents: "Itraconazole100_Info_P.pdf" },
+            { brand: 'Firstline', name: "Itraconazole 200mg - Secondary Pack", category: "Antifungal", description: "High-strength Itraconazole for conditions requiring aggressive or high-concentration antifungal therapy (Secondary Pack Size).", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Itra+200P", price: 790.00, strength: "200mg", packaging: "10x4 Alu Alu / Strip Pack", documents: "Itraconazole200_Info_P.pdf" },
+            
+            // --- AyanBiotech Products (No dedicated list, will filter from ALL if needed) ---
+            // Assuming AyanBiotech might manage distribution/biotech products separately if the list was expanded.
+        ];
+
+
+        // --- PRODUCT RENDERING AND FILTERING ---
+
+        let currentSlide = 0;
+        let visibleProducts = [];
+        let totalSlides = 0;
+
+        function filterProducts(brand) {
+            if (brand === 'ALL') {
+                return productData;
+            }
+            // For AyanBiotech, if no products are explicitly listed above, we filter based on the brand key
+            if (brand === 'AyanBiotech') {
+                // If you want AyanBiotech to show ALL products in the absence of its own list:
+                // return productData; 
+                // Or if AyanBiotech products should be filtered from the list above, but none are explicitly labeled 'AyanBiotech'
+                // return productData.filter(p => p.brand === 'AyanBiotech');
+                
+                // For demonstration, let's treat AyanBiotech as currently having no dedicated products in this dataset:
+                return []; 
+            }
+            return productData.filter(p => p.brand === brand);
+        }
+
+        function createProductCard(product, isLarge = false) {
+            return `
+                <div class="p-6 bg-white rounded-xl shadow-lg hover:shadow-2xl transition duration-500 transform hover:-translate-y-1 border-t-4 border-primary-blue ${isLarge ? 'md:w-1/5 w-11/12' : 'w-full'}" data-name="${product.name}">
+                    <img src="${product.image}" alt="${product.name}" class="h-20 w-20 mx-auto mb-4 rounded-full object-cover border-4 border-accent-green">
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">${product.name}</h3>
+                    <p class="text-sm text-gray-600 mb-2">${product.description}</p>
+                    <p class="text-lg font-extrabold text-secondary-dark mb-4">Price: ₹${product.price.toFixed(2)}</p>
+                    <button onclick="openProductRangeModal('${product.name}')" class="w-full bg-accent-green text-white text-sm py-2 rounded-full font-semibold hover:bg-secondary-dark transition duration-300 transform hover:scale-[1.03]">
+                        View Full Range Details 📦
+                    </button>
+                    <button onclick="fetchGeminiGroundedResponse('${product.name}', '${product.category}')" class="w-full mt-2 border border-accent-green text-accent-green text-sm py-2 rounded-full font-semibold hover:bg-accent-green hover:text-white transition duration-300">
+                        Scientific Deep Dive ✨
+                    </button>
+                </div>
+            `;
+        }
+
+
+        function renderProducts(products) {
+            const homeProductsContainer = document.getElementById('home-products');
+            const carouselInner = document.getElementById('carousel-inner');
+            
+            // 1. Render Featured Products (Home Section - first 5 or all)
+            const featuredProducts = products.slice(0, 5);
+            if(homeProductsContainer) {
+                homeProductsContainer.innerHTML = featuredProducts.map(d => createProductCard(d, true)).join('');
+            }
+            
+            // 2. Render Full Portfolio (Carousel)
+            const slidesHtml = products.map(product => `
+                <div class="min-w-full flex-shrink-0 p-4">
+                    <div class="bg-white rounded-xl shadow-2xl p-8 border-l-4 border-primary-blue text-center transform transition duration-700 ease-in-out" data-name="${product.name}">
+                        <img src="${product.image}" alt="${product.name}" class="h-24 w-24 mx-auto mb-4 rounded-full object-cover shadow-md border-4 border-accent-green">
+                        <h3 class="text-3xl font-extrabold text-secondary-dark mb-2">${product.name}</h3>
+                        <p class="text-lg font-semibold text-gray-700">${product.category}</p>
+                        <p class="mt-4 text-gray-600 max-w-lg mx-auto">${product.description}</p>
+                        <p class="text-2xl font-extrabold text-primary-blue mb-4">Price: ₹${product.price.toFixed(2)}</p>
+                        <button onclick="openProductRangeModal('${product.name}')" class="mt-4 bg-primary-blue text-white text-sm py-2 px-6 rounded-full font-semibold hover:bg-secondary-dark transition duration-300 transform hover:scale-105">
+                            View Full Range 📦
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            if(carouselInner) {
+                carouselInner.innerHTML = slidesHtml;
+            }
+
+            totalSlides = products.length;
+            currentSlide = 0;
+        }
+
+
+        window.showBrandPage = function(brandName) {
+            let currentBrand = brandName;
+            const brandDetails = BRAND_INFO[brandName];
+
+            // 1. Filter Products
+            const targetProducts = filterProducts(brandDetails.products);
+            visibleProducts = targetProducts;
+            
+            // 2. Update Dynamic Texts
+            document.getElementById('home-main-title').textContent = brandDetails.homeTitle;
+            document.getElementById('home-brand-name').textContent = brandName;
+            document.getElementById('home-tagline').textContent = brandDetails.tagline;
+            document.getElementById('home-description').textContent = brandDetails.about;
+            
+            document.getElementById('about-title').textContent = `${brandName} - Our Commitment to Excellence`;
+            document.getElementById('about-description').textContent = brandDetails.about;
+            
+            document.getElementById('portfolio-title').textContent = `${brandName} Portfolio (${targetProducts.length} Products)`;
+            
+            // 3. Render Products & Reset Carousel
+            renderProducts(targetProducts);
+            updateCarousel(0); // Reset carousel position
+            
+            // 4. Update Header Nav Active State 
+            document.querySelectorAll('.nav-brand-link').forEach(link => {
+                link.classList.remove('text-primary-blue', 'font-extrabold');
+                link.classList.add('text-secondary-dark');
+                if (link.getAttribute('data-brand') === brandName) {
+                    link.classList.add('text-primary-blue', 'font-extrabold');
+                }
+            });
+
+            // 5. Restart Carousel (if products list changed)
+            setupProductCarousel();
+            
+            // === SCROLL FIX IMPLEMENTATION ===
+            const targetSection = document.getElementById('home');
+            if (targetSection) {
+                targetSection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' // Scrolls the top of the #home section to the top of the viewport
+                });
+            }
+            // === END SCROLL FIX ===
+        }
+
+        let carouselInterval = null;
+        function updateCarousel(slideIndex = currentSlide) {
+            const carouselInner = document.getElementById('carousel-inner');
+            if (!carouselInner) return;
+            const offset = -slideIndex * 100;
+            carouselInner.style.transform = `translateX(${offset}%)`;
+            currentSlide = slideIndex;
+        }
+        
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateCarousel();
+        }
+        
+        function setupProductCarousel() {
+            if (carouselInterval) clearInterval(carouselInterval); 
+            carouselInterval = setInterval(nextSlide, 4000); 
+        }
+
+
+        function setupScrollAnimations() {
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                });
+            }, {
+                rootMargin: '0px',
+                threshold: 0.1
+            });
+
+            document.querySelectorAll('.fade-in').forEach(element => {
+                observer.observe(element);
+            });
+        }
+        
+        window.onload = function() {
+            // Initialize with the default page view (ALTORA GROUP OF COMPANIES)
+            showBrandPage('ALTORA GROUP OF COMPANIES');
+            setupScrollAnimations();
+        };
+
+        // --- MODAL FUNCTIONS (Same as before) ---
+        window.openProductRangeModal = function(productName) {
+            const product = productData.find(p => p.name === productName);
+            if (!product) {
+                alert("Product details not found.");
+                return;
+            }
+
+            const modal = document.getElementById('productRangeModal');
+            const contentEl = document.getElementById('productRangeContent');
+            
+            contentEl.innerHTML = `
+                <div class="flex items-start justify-between p-4 bg-primary-blue text-white rounded-t-lg shadow-xl">
+                    <div class="flex items-center space-x-4">
+                        <img src="${product.image}" alt="${product.name}" class="h-16 w-16 rounded-full object-cover border-2 border-accent-green bg-white shadow-md">
+                        <div>
+                            <h3 class="text-2xl font-extrabold">${product.name}</h3>
+                            <p class="text-sm font-semibold text-gray-200">Category (Type): ${product.category}</p>
+                        </div>
+                    </div>
+                    <button onclick="openProductRangeModalInquiry()" class="bg-accent-green text-white font-bold py-2 px-4 rounded-full hover:bg-secondary-dark transition duration-300 transform hover:scale-105">
+                        Inquiry
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-6">
+                    <div class="p-4 bg-gray-50 rounded-lg border-l-4 border-accent-green">
+                        <h4 class="text-lg font-bold text-secondary-dark mb-2">Description</h4>
+                        <p class="text-gray-600">${product.description}</p>
+                    </div>
+
+                    <div class="p-4 rounded-lg shadow-inner bg-white border border-gray-200">
+                        <h4 class="text-xl font-bold text-primary-blue mb-4 border-b pb-2">Product Range Details</h4>
+                        
+                        <div class="grid grid-cols-2 gap-y-3">
+                            <div class="font-bold text-gray-700">Active Strength:</div>
+                            <div class="text-gray-900 font-semibold">${product.strength}</div>
+                            
+                            <div class="font-bold text-gray-700">Packaging:</div>
+                            <div class="text-gray-900 font-semibold">${product.packaging}</div>
+
+                            <div class="font-bold text-gray-700">Price:</div>
+                            <div class="text-xl font-extrabold text-secondary-dark">₹${product.price.toFixed(2)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="pt-4 border-t">
+                        <div class="mb-4">
+                            <h4 class="text-lg font-bold text-gray-800 mb-2">Documents</h4>
+                            <a href="#" class="text-primary-blue hover:text-secondary-dark hover:underline font-medium flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0113 3.414L16.586 7A2 2 0 0118 8.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path></svg>
+                                Patient Leaflet / COA: ${product.documents} (Download)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.style.display = 'flex';
+        }
+    </script>
+
+    <header class="sticky top-0 z-50 bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            
+            <div class="flex flex-col items-start cursor-pointer" onclick="showBrandPage('ALTORA GROUP OF COMPANIES')">
+                <h1 class="text-3xl font-extrabold text-primary-blue tracking-tighter transition duration-500 hover:text-secondary-dark">
+                    ALTORA GROUP OF COMPANIES
+                </h1>
+                <div class="text-xs text-gray-500 font-semibold mt-1 flex">
+                    <span onclick="event.stopPropagation(); showBrandPage('Altora Life Sciences')" class="nav-brand-link mr-3 text-secondary-dark hover:text-primary-blue transition duration-200" data-brand="Altora Life Sciences">Altora Life Sciences</span>
+                    <span class="text-accent-green">|</span>
+                    <span onclick="event.stopPropagation(); showBrandPage('Firstline')" class="nav-brand-link ml-3 text-secondary-dark hover:text-primary-blue transition duration-200" data-brand="Firstline">Firstline</span>
+                    <span class="text-accent-green ml-3">|</span>
+                    <span onclick="event.stopPropagation(); showBrandPage('AyanBiotech')" class="nav-brand-link ml-3 text-secondary-dark hover:text-primary-blue transition duration-200" data-brand="AyanBiotech">AyanBiotech</span>
+                </div>
+            </div>
+            
+        </div>
+    </header>
+
+    <main>
+        <section id="home" class="min-h-screen pt-20 flex flex-col items-center justify-center text-center px-4 md:px-8 bg-gray-100">
+            <div class="fade-in max-w-4xl mx-auto mb-16">
+                <p id="home-tagline" class="text-xl font-medium text-accent-green mb-3 tracking-widest uppercase">Innovating Health, Enhancing Life</p>
+                <h2 class="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-tight">
+                    <span id="home-main-title">Welcome to</span> <span id="home-brand-name" class="text-primary-blue">ALTORA GROUP OF COMPANIES</span>
+                </h2>
+                <p id="home-description" class="text-lg text-gray-600 mb-8 max-w-3xl mx-auto">
+                    The ALTORA GROUP is committed to developing high-quality, scientifically-backed pharmaceutical products and nutritional supplements. Our focus is on safety, efficacy, and trust.
+                </p>
+            </div>
+        </section>
+
+        <section id="lab-image-section" class="py-20 bg-white text-center">
+            <div class="max-w-7xl mx-auto px-4 md:px-8">
+                <div class="fade-in mb-10">
+                    <h2 class="text-4xl font-extrabold text-gray-900 mb-4">Our State-of-the-Art Research Facilities</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                        At ALTORA, innovation begins in our advanced laboratories. Our dedicated scientists and researchers are committed to bringing you the highest quality, scientifically-backed pharmaceutical products.
+                    </p>
+                </div>
+                <div class="fade-in delay-200 rounded-xl overflow-hidden shadow-2xl border-4 border-primary-blue">
+                    <img src="image.png" 
+                            alt="Modern Pharmaceutical Research Laboratory" class="w-full h-auto object-cover">
+                </div>
+            </div>
+        </section>
+        <section id="home-products-section" class="py-20 bg-gray-100"> 
+            <div class="w-full max-w-7xl mx-auto px-4 md:px-8">
+                <h3 class="text-3xl font-bold text-gray-900 mb-8 border-b pb-4 text-center">Our Featured Products</h3>
+                <div id="home-products" class="flex flex-wrap justify-center gap-6">
+                    </div>
+            </div>
+        </section>
+        
+        <section id="queries" class="py-20 bg-white">
+            <div class="max-w-3xl mx-auto px-4 md:px-8">
+                <div class="fade-in text-center mb-10">
+                    <h2 class="text-4xl font-extrabold text-gray-900 mb-4">Contact & Queries</h2>
+                    <p class="text-lg text-gray-600">Send us your partnership proposals, technical questions, or general inquiries.</p>
+                </div>
+                
+                <div class="fade-in delay-100 bg-gray-50 p-8 rounded-xl shadow-2xl border-t-8 border-primary-blue">
+                    <form id="queryForm" onsubmit="window.handleQuerySubmission(event)">
+                        <div class="mb-4">
+                            <label for="query-name" class="block text-sm font-medium text-gray-700 mb-2">Your Full Name</label>
+                            <input type="text" id="query-name" placeholder="Name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue transition duration-300" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="query-email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <input type="email" id="query-email" placeholder="Email" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue transition duration-300" required>
+                        </div>
+                        <div class="mb-6">
+                            <label for="query-text" class="block text-sm font-medium text-gray-700 mb-2">Your Query / Message</label>
+                            <textarea id="query-text" rows="4" placeholder="Type your detailed message here" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue transition duration-300" required></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full bg-secondary-dark text-white font-bold py-3 rounded-xl shadow-lg hover:bg-primary-blue transition duration-500 transform hover:scale-[1.01]">
+                            Submit Query
+                        </button>
+                    </form>
+
+                    <p id="query-message" class="mt-4 text-sm font-medium text-center text-gray-500"></p>
+                </div>
+
+                <div class="fade-in text-center mt-12 mb-8">
+                    <h3 class="text-3xl font-extrabold text-gray-900 mb-4">Health Assistant 🎧</h3>
+                    <p class="text-base text-gray-600">Ask a quick, general health or product question and get an instant, spoken consultation.</p>
+                </div>
+                <div id="tts-assistant" class="fade-in delay-200 bg-white p-8 rounded-xl shadow-xl border-t-4 border-accent-green">
+                    <div class="mb-5">
+                        <label for="tts-prompt" class="block text-sm font-medium text-gray-700 mb-2">Your Health Question</label>
+                        <input type="text" id="tts-prompt" placeholder="e.g., What are the general benefits of Vitamin D?" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-primary-blue focus:border-primary-blue transition duration-300">
+                    </div>
+
+                    <button onclick="fetchGeminiAudioResponse()" class="w-full bg-accent-green text-white font-bold py-3 rounded-xl shadow-lg hover:bg-secondary-dark transition duration-500 transform hover:scale-[1.01]">
+                        Consult Assistant 🎧
+                    </button>
+
+                    <p id="tts-message" class="mt-4 text-sm font-medium text-center text-gray-500">Note: This is an automated consultation and not a substitute for professional medical advice.</p>
+                    
+                    <audio id="tts-audio-player" controls class="mt-4 w-full hidden mx-auto"></audio>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="about" class="py-20 bg-secondary-dark">
+            <div class="max-w-7xl mx-auto px-4 md:px-8 text-center text-white">
+                <div class="fade-in max-w-4xl mx-auto">
+                    <h2 id="about-title" class="text-5xl font-extrabold mb-6 text-accent-green">Our Commitment to Excellence</h2>
+                    <p id="about-description" class="text-lg mb-8">
+                        The ALTORA GROUP is committed to developing high-quality, scientifically-backed pharmaceutical products and nutritional supplements. Our focus is on safety, efficacy, and trust.
+                    </p>
+                    <div class="text-left space-y-4">
+                        <p class="text-base flex items-start">
+                            <svg class="w-6 h-6 mr-3 mt-1 text-primary-blue flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            **R&D Focus:** Every product undergoes rigorous laboratory testing and clinical review to ensure maximum effectiveness and safety.
+                        </p>
+                        <p class="text-base flex items-start">
+                            <svg class="w-6 h-6 mr-3 mt-1 text-primary-blue flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            **Quality Standards:** We adhere to global Good Manufacturing Practice (GMP) in every stage of production.
+                        </p>
+                        <p class="text-base flex items-start">
+                            <svg class="w-6 h-6 mr-3 mt-1 text-primary-blue flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                            **Ethical Sourcing:** We prioritize sustainable and ethically sourced materials to minimize environmental impact.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <section id="products" class="py-20 bg-gray-100">
+            <div class="max-w-7xl mx-auto px-4 md:px-8 text-center">
+                <div class="fade-in mb-12">
+                    <h2 id="portfolio-title" class="text-5xl font-extrabold text-gray-900 mb-4">Our Full Product Portfolio</h2>
+                    <p class="text-xl text-gray-600">See our comprehensive range of supplements and pharmaceutical solutions.</p>
+                </div>
+
+                <div class="fade-in delay-300 relative overflow-hidden rounded-3xl shadow-2xl bg-white border border-gray-200">
+                    <div id="carousel-inner" class="flex transition-transform duration-700 ease-in-out" style="width: 100%;">
+                        </div>
+                </div>
+                
+                <div class="fade-in delay-400 mt-16 max-w-4xl mx-auto p-8 rounded-xl bg-white shadow-lg border-l-4 border-accent-green">
+                    <h3 class="text-2xl font-bold text-primary-blue mb-4">Contact Information</h3>
+                    <div class="flex flex-col md:flex-row justify-center space-y-3 md:space-y-0 md:space-x-8 text-lg">
+                        <div class="flex items-center justify-center">
+                            <span class="font-semibold text-secondary-dark mr-2">Sales/Retail:</span>
+                            <a href="tel:+916201186100" class="text-accent-green hover:underline">+91 6201186100</a>
+                        </div>
+                        <div class="flex items-center justify-center">
+                            <span class="font-semibold text-secondary-dark mr-2">Corporate/R&D:</span>
+                            <a href="tel:+918699691078" class="text-accent-green hover:underline">+91 8699691078</a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="max-w-7xl mx-auto text-center">
+            <p>&copy; 2025 ALTORA GROUP OF COMPANIES. All rights reserved.</p>
+            <p class="text-sm mt-2 text-gray-400">Committed to scientific excellence and public health.</p>
+        </div>
+    </footer>
+
+    <div id="deepDiveModal" class="modal-backdrop">
+        <div class="modal-content p-8">
+            <h3 id="deepDiveTitle" class="text-3xl font-extrabold text-secondary-dark mb-4"></h3>
+            <div id="deepDiveLoader" class="flex items-center justify-center py-6">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-blue"></div>
+                <span class="ml-3 text-gray-600">Retrieving Scientific Data...</span>
+            </div>
+            <div id="deepDiveContent" class="text-gray-700 text-base leading-relaxed">
+            </div>
+            <button onclick="closeDeepDiveModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 transition duration-300">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    </div>
+    
+    <div id="productRangeModal" class="modal-backdrop">
+        <div class="modal-content w-full md:w-3/5">
+            <div id="productRangeContent" class="text-gray-700 text-base leading-relaxed">
+                </div>
+            
+            <button onclick="closeProductRangeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-900 transition duration-300">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    </div>
+
+</body>
+</html>
