@@ -440,7 +440,7 @@
         }
 
 
-        // --- BRANDING AND CONTENT LOGIC (Cleaned up duplications) ---
+        // --- BRANDING AND CONTENT LOGIC ---
 
         const BRAND_INFO = {
             'ALTORA GROUP OF COMPANIES': {
@@ -454,18 +454,24 @@
                 about: "Altora Life Sciences, a division of ALTORA GROUP, focuses on innovative research and the manufacturing of specialized, high-potency nutritional and therapeutic supplements.",
                 products: 'Altora Life Sciences',
                 homeTitle: "Discover",
+                // This brand will remain on the current site for filtering
+                link: false, 
             },
             'Firstline': {
                 tagline: "Your First Choice in Quality Healthcare",
                 about: "The Firstline division focuses on providing affordable, high-quality, essential pharmaceuticals and generic medicines that meet everyday healthcare needs.",
                 products: 'Firstline',
                 homeTitle: "Explore",
+                // Added external link for Firstline
+                link: 'https://ayyyanbiotech.pages.dev/', 
             },
             'AyanBiotech': {
                 tagline: "Biotech Innovations for Global Health Access",
                 about: "AyanBiotech leverages advanced biotechnology for the research and commercialization of new-generation pharmaceutical solutions and targeted therapeutics.",
                 products: 'AyanBiotech', // Key used for filtering
                 homeTitle: "Advance with",
+                // Added external link for AyanBiotech
+                link: 'https://ayyyanbiotech.pages.dev/', 
             },
         };
 
@@ -500,10 +506,10 @@
             { brand: 'Firstline', name: "FEROFAB XT Syrup", category: "Iron & Hematinic Syrup", description: "Essential hematinic formula with Ferric Ammonium Citrate, Folic Acid, and Zinc, used to treat iron deficiency and associated anemia.", image: "https://placehold.co/200x200/8c93a3/ffffff?text=FL+Iron", price: 290.00, strength: "Elemental Iron 30mg / Folic Acid 500mcg / Zinc Sulphate 17mg", packaging: "Syrup Base", documents: "FEROFABXT_TDS.pdf" },
             { brand: 'Firstline', name: "Itraconazole 100mg", category: "Antifungal", description: "Oral antifungal used for long-term treatment of systemic and severe cutaneous fungal infections.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Itra+100", price: 450.00, strength: "100mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Itraconazole100_Info.pdf" },
             { brand: 'Firstline', name: "Acebrophylline Capsules", category: "Respiratory / Bronchodilator", description: "Used for the treatment of asthma and chronic obstructive pulmonary disease (COPD) by relaxing muscles in the airways.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Resp", price: 350.00, strength: "100mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Acebrophylline_Info.pdf" },
-            { brand: 'Firstline', name: "Aceclofenac SR 200mg & Thiocolchicoside SR 8mg", category: "Pain & Inflammation", description: "Combination drug used for relief from moderate to severe pain and muscle spasm associated with musculoskeletal conditions.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Pain+8", price: 420.00, strength: "Aceclofenac SR 200mg & Thiocolchicoside SR 8mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AcecloThio8_Info.pdf" },
-            { brand: 'Firstline', name: "Aceclofenac SR 200mg & Thiocolchicoside SR 16mg", category: "Pain & Inflammation", description: "Higher strength combination for effective relief from severe pain and intense muscle rigidity.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Pain+16", price: 550.00, strength: "Aceclofenac SR 200mg & Thiocolchicoside SR 16mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AcecloThio16_Info.pdf" },
+            { brand: 'Firstline', name: "Aceclofenac SR 200mg and Thiocolchicoside SR 8mg", category: "Pain & Inflammation", description: "Combination drug used for relief from moderate to severe pain and muscle spasm associated with musculoskeletal conditions.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Pain+8", price: 420.00, strength: "Aceclofenac SR 200mg & Thiocolchicoside SR 8mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AcecloThio8_Info.pdf" },
+            { brand: 'Firstline', name: "Aceclofenac SR 200mg and Thiocolchicoside SR 16mg", category: "Pain & Inflammation", description: "Higher strength combination for effective relief from severe pain and intense muscle rigidity.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Pain+16", price: 550.00, strength: "Aceclofenac SR 200mg & Thiocolchicoside SR 16mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AcecloThio16_Info.pdf" },
             { brand: 'Firstline', name: "Atorvastatin 10mg and Aspirin 75mg", category: "Cardiology / Lipid Control", description: "Used to reduce the risk of heart attack and stroke in patients by lowering cholesterol (Atorvastatin) and preventing blood clots (Aspirin).", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Cardio", price: 650.00, strength: "Atorvastatin 10mg & Aspirin 75mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AtorAspirin75_Info.pdf" },
-            { brand: 'Firstline', name: "Atorvastatin 10mg and Aspirin 150mg", category: "Cardiology / Lipid Control", description: "Higher Aspirin strength combination for more intense cardiovascular protection and cholesterol management.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Cardio+", price: 780.00, strength: "Atorvastatin 10mg & Aspirin 150mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AtorAspirin150_Info.pdf" },
+            { brand: 'Firstline', name: "Atorvastatin 10mg and Aspirin 150mg", category: "Cardiology / Lipid Control", description: "Higher Aspirin strength combination for more intense cardiovascular protection and cholesterol management.", image: "httpshold.co/200x200/60a5fa/ffffff?text=FL+Cardio+", price: 780.00, strength: "Atorvastatin 10mg & Aspirin 150mg", packaging: "10x10 Alu Alu / Strip Pack", documents: "AtorAspirin150_Info.pdf" },
             { brand: 'Firstline', name: "Carbonyl Iron, Folic Acid, Zinc, Vit C, B12", category: "Haematinic / Iron Supplement", description: "A comprehensive formula to prevent and treat various types of anemia by supplementing essential blood-forming minerals and vitamins.", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Haematinic", price: 320.00, strength: "Iron 100mg, Folic Acid 1.5mg, Zinc 61.8mg, Vit C 75mg, B12 15mcg", packaging: "10x10 Alu Alu / Strip Pack", documents: "Haematinic_Complex_Info.pdf" },
             { brand: 'Firstline', name: "Clindamycin 150mg IP (P2)", category: "Antibiotic", description: "A potent lincosamide antibiotic used to treat various serious bacterial infections, including respiratory and skin infections. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Clinda+150", price: 210.00, strength: "150mg IP", packaging: "10x10 Alu Alu / Strip Pack", documents: "Clindamycin150_Info.pdf" },
             { brand: 'Firstline', name: "Clindamycin 300mg IP (P2)", category: "Antibiotic", description: "Higher strength Clindamycin for treating severe bacterial infections that are sensitive to this antibiotic. (Alternate pack)", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Clinda+300", price: 390.00, strength: "300mg IP", packaging: "10x10 Alu Alu / Strip Pack", documents: "Clindamycin300_Info.pdf" },
@@ -525,7 +531,6 @@
             { brand: 'Firstline', name: "Itraconazole 200mg - Secondary Pack", category: "Antifungal", description: "High-strength Itraconazole for conditions requiring aggressive or high-concentration antifungal therapy (Secondary Pack Size).", image: "https://placehold.co/200x200/60a5fa/ffffff?text=FL+Itra+200P", price: 790.00, strength: "200mg", packaging: "10x4 Alu Alu / Strip Pack", documents: "Itraconazole200_Info_P.pdf" },
             
             // --- AyanBiotech Products (No dedicated list, will filter from ALL if needed) ---
-            // Assuming AyanBiotech might manage distribution/biotech products separately if the list was expanded.
         ];
 
 
@@ -541,12 +546,7 @@
             }
             // For AyanBiotech, if no products are explicitly listed above, we filter based on the brand key
             if (brand === 'AyanBiotech') {
-                // If you want AyanBiotech to show ALL products in the absence of its own list:
-                // return productData; 
-                // Or if AyanBiotech products should be filtered from the list above, but none are explicitly labeled 'AyanBiotech'
-                // return productData.filter(p => p.brand === 'AyanBiotech');
-                
-                // For demonstration, let's treat AyanBiotech as currently having no dedicated products in this dataset:
+                // Since this brand is now an external link, this section is mostly a placeholder
                 return []; 
             }
             return productData.filter(p => p.brand === brand);
@@ -577,7 +577,12 @@
             // 1. Render Featured Products (Home Section - first 5 or all)
             const featuredProducts = products.slice(0, 5);
             if(homeProductsContainer) {
-                homeProductsContainer.innerHTML = featuredProducts.map(d => createProductCard(d, true)).join('');
+                // If there are no products, clear the container
+                if (products.length === 0) {
+                    homeProductsContainer.innerHTML = '<p class="text-xl text-gray-500">No featured products for this brand on this site.</p>';
+                } else {
+                    homeProductsContainer.innerHTML = featuredProducts.map(d => createProductCard(d, true)).join('');
+                }
             }
             
             // 2. Render Full Portfolio (Carousel)
@@ -597,17 +602,30 @@
             `).join('');
 
             if(carouselInner) {
-                carouselInner.innerHTML = slidesHtml;
+                 if (products.length === 0) {
+                     // Add a blank slide if no products
+                     carouselInner.innerHTML = '<div class="min-w-full flex-shrink-0 p-4"><div class="bg-white rounded-xl shadow-2xl p-8 text-center"><p class="text-xl text-gray-500">No product portfolio available here.</p></div></div>';
+                 } else {
+                     carouselInner.innerHTML = slidesHtml;
+                 }
             }
 
-            totalSlides = products.length;
+            totalSlides = products.length > 0 ? products.length : 1; // Ensure totalSlides is at least 1
             currentSlide = 0;
         }
 
 
         window.showBrandPage = function(brandName) {
-            let currentBrand = brandName;
-            const brandDetails = BRAND_INFO[brandName];
+            let brandDetails = BRAND_INFO[brandName];
+            
+            // --- NEW: Handle External Link ---
+            if (brandDetails.link) {
+                window.open(brandDetails.link, '_blank');
+                // Revert to the main page display if the user clicks an external link brand
+                brandDetails = BRAND_INFO['ALTORA GROUP OF COMPANIES']; 
+            }
+            // --- END NEW: Handle External Link ---
+
 
             // 1. Filter Products
             const targetProducts = filterProducts(brandDetails.products);
@@ -615,14 +633,14 @@
             
             // 2. Update Dynamic Texts
             document.getElementById('home-main-title').textContent = brandDetails.homeTitle;
-            document.getElementById('home-brand-name').textContent = brandName;
+            document.getElementById('home-brand-name').textContent = brandDetails.link ? 'External Site' : brandName; // Update text for external links
             document.getElementById('home-tagline').textContent = brandDetails.tagline;
             document.getElementById('home-description').textContent = brandDetails.about;
             
-            document.getElementById('about-title').textContent = `${brandName} - Our Commitment to Excellence`;
+            document.getElementById('about-title').textContent = `${brandDetails.link ? 'ALTORA GROUP' : brandName} - Our Commitment to Excellence`;
             document.getElementById('about-description').textContent = brandDetails.about;
             
-            document.getElementById('portfolio-title').textContent = `${brandName} Portfolio (${targetProducts.length} Products)`;
+            document.getElementById('portfolio-title').textContent = `${brandDetails.link ? 'ALTORA GROUP' : brandName} Portfolio (${targetProducts.length} Products)`;
             
             // 3. Render Products & Reset Carousel
             renderProducts(targetProducts);
@@ -766,9 +784,9 @@
                 <div class="text-xs text-gray-500 font-semibold mt-1 flex">
                     <span onclick="event.stopPropagation(); showBrandPage('Altora Life Sciences')" class="nav-brand-link mr-3 text-secondary-dark hover:text-primary-blue transition duration-200" data-brand="Altora Life Sciences">Altora Life Sciences</span>
                     <span class="text-accent-green">|</span>
-                    <span onclick="event.stopPropagation(); showBrandPage('Firstline')" class="nav-brand-link ml-3 text-secondary-dark hover:text-primary-blue transition duration-200" data-brand="Firstline">Firstline</span>
+                    <a href="https://ayyyanbiotech.pages.dev/" target="_blank" class="nav-brand-link ml-3 text-secondary-dark hover:text-primary-blue transition duration-200" data-brand="Firstline">Firstline</a>
                     <span class="text-accent-green ml-3">|</span>
-                    <span onclick="event.stopPropagation(); showBrandPage('AyanBiotech')" class="nav-brand-link ml-3 text-secondary-dark hover:text-primary-blue transition duration-200" data-brand="AyanBiotech">AyanBiotech</span>
+                    <a href="https://ayyyanbiotech.pages.dev/" target="_blank" class="nav-brand-link ml-3 text-secondary-dark hover:text-primary-blue transition duration-200" data-brand="AyanBiotech">AyanBiotech</a>
                 </div>
             </div>
             
